@@ -15,10 +15,10 @@
           colors: {
             baidu: {
               blue: '#3385ff',
-              darkblue: '#2b73db',
+              darkblue: '#246cdb',
               orange: '#ff6600',
               red: '#ea3526',
-              bg: '#f5f5f7',
+              bg: '#f6f7fb',
               card: '#ffffff',
               subtext: '#8c8c8c'
             }
@@ -27,10 +27,6 @@
       }
     }
   </script>
-  
-  <!-- Leaflet Map CSS & JS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   
   <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -45,7 +41,6 @@
       user-select: none;
     }
     
-    /* Custom Scrollbar */
     ::-webkit-scrollbar {
       width: 4px;
       height: 4px;
@@ -55,229 +50,157 @@
       border-radius: 4px;
     }
     
-    /* Map Marker Custom Pulsing Style */
-    .custom-map-pin {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: transform 0.2s ease;
-    }
-    .custom-map-pin:hover {
-      transform: scale(1.15) translateY(-2px);
-    }
-    
-    /* Hide Leaflet Default Attributions for Clean App Look */
-    .leaflet-control-attribution {
-      font-size: 9px !important;
-      opacity: 0.6;
-    }
-    
-    /* Ensure Leaflet tiles and container always render cleanly */
-    #leaflet-map {
-      width: 100% !important;
-      height: 100% !important;
-      min-height: calc(100vh - 180px);
-      background: #f4f6f8;
-      z-index: 1;
-    }
-    .leaflet-tile {
-      filter: saturate(1.05) contrast(1.02);
-    }
-    
-    /* Smooth tab indicator transitions */
-    .tab-active {
-      color: #111827;
-      font-weight: 700;
-      position: relative;
-    }
-    .tab-active::after {
-      content: '';
-      position: absolute;
-      bottom: -6px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 20px;
-      height: 3px;
-      background: #3385ff;
-      border-radius: 999px;
+    .filter-pill-active {
+      background-color: #3385ff;
+      color: #ffffff;
+      box-shadow: 0 4px 10px rgba(51, 133, 255, 0.25);
     }
   </style>
 </head>
 <body class="bg-slate-100 text-slate-800 flex justify-center min-h-screen antialiased">
 
-  <!-- Main Phone Wrapper (Centered for desktop, fluid for mobile) -->
-  <div class="w-full max-w-md bg-white min-h-screen flex flex-col shadow-2xl relative overflow-hidden">
+  <!-- Main Container (Centered on desktop, fluid mobile) -->
+  <div class="w-full max-w-md bg-baidu-bg min-h-screen flex flex-col shadow-2xl relative overflow-hidden">
     
     <!-- Top Header Navigation -->
-    <header class="sticky top-0 z-30 bg-white border-b border-slate-100 select-none">
+    <header class="sticky top-0 z-30 bg-white border-b border-slate-100 select-none shadow-xs">
       <!-- App Brand Title Bar -->
-      <div class="flex items-center justify-between px-4 pt-3 pb-1 border-b border-slate-50">
+      <div class="flex items-center justify-between px-4 pt-3 pb-2 border-b border-slate-50">
         <div class="flex items-center space-x-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-baidu-orange"></span>
+          <span class="w-2.5 h-2.5 rounded-full bg-baidu-orange animate-pulse"></span>
           <h1 class="text-[17px] font-black tracking-tight text-slate-900 flex items-center space-x-1.5">
             <span>勝光</span>
             <span class="text-baidu-blue font-black text-sm">@</span>
             <span class="bg-gradient-to-r from-baidu-blue to-blue-600 bg-clip-text text-transparent">東莞美食地圖</span>
           </h1>
         </div>
-        <span class="text-[11px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
-          <i class="fa-solid fa-location-dot text-baidu-orange text-[10px] mr-1"></i>東莞
-        </span>
-      </div>
-
-      <!-- App Header Nav (地圖 在左 / 地點 在右) -->
-      <div class="flex items-center justify-between px-3 py-2">
-        <button id="btn-back" class="p-2 text-slate-700 hover:bg-slate-100 rounded-full transition" title="返回" onclick="switchMainTab('map')">
-          <i class="fa-solid fa-chevron-left text-lg"></i>
-        </button>
-
-        <nav class="flex items-center space-x-10 text-[15px] text-slate-500 font-medium">
-          <button id="nav-tab-map" class="tab-active transition hover:text-slate-900" onclick="switchMainTab('map')">地圖</button>
-          <button id="nav-tab-list" class="transition hover:text-slate-900" onclick="switchMainTab('list')">地點</button>
-        </nav>
-
-        <div class="w-7"></div> <!-- balance back button -->
-      </div>
-
-      <!-- Filter Sub-tabs (僅保留 我收藏的) -->
-      <div class="flex items-center space-x-2 px-4 py-2 text-xs">
-        <button class="px-3.5 py-1 rounded-full bg-blue-50 text-baidu-blue font-semibold shadow-sm">
-          我收藏的
-        </button>
-      </div>
-
-      <!-- Collection Bar: 默認收藏夾 + Count + Search -->
-      <div class="flex items-center justify-between px-4 py-2 border-t border-slate-100 bg-white">
-        <div class="flex items-baseline space-x-2">
-          <span class="text-base font-bold text-slate-900">默認收藏夾</span>
-          <span id="places-count" class="text-xs text-slate-400 font-bold">18</span>
-        </div>
-        
-        <div class="flex items-center space-x-3 text-slate-600 text-sm">
-          <button onclick="openAddPlaceModal()" class="flex items-center space-x-1 text-baidu-blue font-medium hover:opacity-80 active:scale-95 transition">
-            <i class="fa-solid fa-plus text-xs"></i>
-            <span class="text-xs font-semibold">添加地點</span>
-          </button>
-          <button onclick="toggleSearchBar()" class="p-1 hover:text-baidu-blue transition" title="搜尋">
-            <i class="fa-solid fa-magnifying-glass"></i>
-          </button>
-          <button onclick="showSortFilterMenu()" class="p-1 hover:text-baidu-blue transition" title="更多選項">
-            <i class="fa-solid fa-ellipsis-vertical"></i>
-          </button>
+        <div class="flex items-center space-x-1.5">
+          <a href="https://map.baidu.com" target="_blank" class="text-[11px] font-semibold text-baidu-blue bg-blue-50 px-2.5 py-0.5 rounded-full flex items-center space-x-1 border border-blue-100 hover:bg-blue-100 transition">
+            <i class="fa-solid fa-diamond-turn-right text-baidu-red text-[10px]"></i>
+            <span>百度地圖直連</span>
+          </a>
         </div>
       </div>
 
-      <!-- Quick Search Bar (Collapsible) -->
-      <div id="quick-search-box" class="hidden px-4 pb-2">
+      <!-- Quick Search Bar -->
+      <div class="px-4 py-2.5">
         <div class="relative flex items-center">
-          <i class="fa-solid fa-search absolute left-3 text-slate-400 text-xs"></i>
-          <input id="search-input" type="text" placeholder="搜尋餐廳名、菜系、路名..." 
-                 class="w-full bg-slate-100 pl-8 pr-8 py-1.5 rounded-lg text-xs outline-none focus:ring-2 focus:ring-baidu-blue"
+          <i class="fa-solid fa-magnifying-glass absolute left-3.5 text-slate-400 text-xs"></i>
+          <input id="search-input" type="text" placeholder="搜尋餐廳名、菜系、路名或地標..." 
+                 class="w-full bg-slate-100 pl-9 pr-9 py-2 rounded-xl text-xs outline-none focus:ring-2 focus:ring-baidu-blue border border-transparent focus:bg-white transition"
                  oninput="handleSearch(this.value)">
-          <button id="clear-search-btn" class="hidden absolute right-2.5 text-slate-400 hover:text-slate-600 text-xs" onclick="clearSearch()">
+          <button id="clear-search-btn" class="hidden absolute right-3 text-slate-400 hover:text-slate-600 text-xs" onclick="clearSearch()">
             <i class="fa-solid fa-circle-xmark"></i>
           </button>
         </div>
       </div>
 
-      <!-- Category Filter Dropdown Pills -->
-      <div class="flex items-center justify-around px-4 py-2 text-xs border-b border-slate-100 bg-slate-50/50">
-        <div class="relative">
-          <button onclick="toggleDropdown('tag-dropdown')" class="flex items-center space-x-1 text-slate-700 hover:text-baidu-blue font-medium">
-            <span id="current-tag-label">全部標籤</span>
-            <i class="fa-solid fa-caret-down text-[10px] text-slate-400"></i>
-          </button>
-          <div id="tag-dropdown" class="hidden absolute top-7 left-0 w-36 bg-white border border-slate-200 rounded-xl shadow-xl z-40 py-1 text-xs">
-            <div onclick="selectTag('全部標籤')" class="px-3 py-2 hover:bg-slate-50 cursor-pointer font-medium">全部標籤</div>
-            <div onclick="selectTag('火鍋/牛肉')" class="px-3 py-2 hover:bg-slate-50 cursor-pointer">火鍋/牛肉</div>
-            <div onclick="selectTag('燒烤/烤肉')" class="px-3 py-2 hover:bg-slate-50 cursor-pointer">燒烤/烤肉</div>
-            <div onclick="selectTag('粵菜/大排檔')" class="px-3 py-2 hover:bg-slate-50 cursor-pointer">粵菜/大排檔</div>
-            <div onclick="selectTag('異國料理')" class="px-3 py-2 hover:bg-slate-50 cursor-pointer">異國料理</div>
-            <div onclick="selectTag('甜品/小吃')" class="px-3 py-2 hover:bg-slate-50 cursor-pointer">甜品/小吃</div>
+      <!-- Category Filter Horizontal Scroll Pills -->
+      <div class="flex items-center space-x-2 px-4 pb-2.5 overflow-x-auto text-xs no-scrollbar">
+        <button onclick="selectTag('全部標籤')" class="tag-pill px-3 py-1 rounded-full bg-slate-100 text-slate-600 font-medium whitespace-nowrap transition filter-pill-active" data-tag="全部標籤">全部</button>
+        <button onclick="selectTag('火鍋/牛肉')" class="tag-pill px-3 py-1 rounded-full bg-slate-100 text-slate-600 font-medium whitespace-nowrap transition" data-tag="火鍋/牛肉">火鍋/牛肉</button>
+        <button onclick="selectTag('燒烤/烤肉')" class="tag-pill px-3 py-1 rounded-full bg-slate-100 text-slate-600 font-medium whitespace-nowrap transition" data-tag="燒烤/烤肉">燒烤/烤肉</button>
+        <button onclick="selectTag('粵菜/大排檔')" class="tag-pill px-3 py-1 rounded-full bg-slate-100 text-slate-600 font-medium whitespace-nowrap transition" data-tag="粵菜/大排檔">粵菜/大排檔</button>
+        <button onclick="selectTag('異國料理')" class="tag-pill px-3 py-1 rounded-full bg-slate-100 text-slate-600 font-medium whitespace-nowrap transition" data-tag="異國料理">異國料理</button>
+        <button onclick="selectTag('甜品/小吃')" class="tag-pill px-3 py-1 rounded-full bg-slate-100 text-slate-600 font-medium whitespace-nowrap transition" data-tag="甜品/小吃">甜品/小吃</button>
+      </div>
+
+      <!-- Sub Filter Controls: Area & Sorting -->
+      <div class="flex items-center justify-between px-4 py-2 bg-slate-50/80 border-t border-slate-100 text-xs text-slate-600">
+        <div class="flex items-center space-x-2">
+          <!-- District Filter -->
+          <div class="relative">
+            <button onclick="toggleDropdown('city-dropdown')" class="flex items-center space-x-1 font-semibold text-slate-700 hover:text-baidu-blue">
+              <i class="fa-solid fa-location-dot text-baidu-orange text-[11px]"></i>
+              <span id="current-city-label">東莞市 (全部)</span>
+              <i class="fa-solid fa-caret-down text-[9px] text-slate-400"></i>
+            </button>
+            <div id="city-dropdown" class="hidden absolute top-7 left-0 w-36 bg-white border border-slate-200 rounded-xl shadow-xl z-40 py-1 text-xs">
+              <div onclick="selectCity('東莞市 (全部)')" class="px-3 py-2 hover:bg-slate-50 cursor-pointer font-bold text-baidu-blue">東莞市 (全部)</div>
+              <div onclick="selectCity('東城區')" class="px-3 py-2 hover:bg-slate-50 cursor-pointer">東城區</div>
+              <div onclick="selectCity('莞城區')" class="px-3 py-2 hover:bg-slate-50 cursor-pointer">莞城區</div>
+              <div onclick="selectCity('石碣鎮')" class="px-3 py-2 hover:bg-slate-50 cursor-pointer">石碣鎮</div>
+              <div onclick="selectCity('清溪鎮')" class="px-3 py-2 hover:bg-slate-50 cursor-pointer">清溪鎮</div>
+              <div onclick="selectCity('高埗鎮')" class="px-3 py-2 hover:bg-slate-50 cursor-pointer">高埗鎮</div>
+            </div>
           </div>
         </div>
 
-        <div class="relative">
-          <button onclick="toggleDropdown('type-dropdown')" class="flex items-center space-x-1 text-slate-700 hover:text-baidu-blue font-medium">
-            <span id="current-type-label">全部類型</span>
-            <i class="fa-solid fa-caret-down text-[10px] text-slate-400"></i>
-          </button>
-          <div id="type-dropdown" class="hidden absolute top-7 left-1/2 -translate-x-1/2 w-32 bg-white border border-slate-200 rounded-xl shadow-xl z-40 py-1 text-xs">
-            <div onclick="selectType('全部類型')" class="px-3 py-2 hover:bg-slate-50 cursor-pointer font-medium">全部類型</div>
-            <div onclick="selectType('正餐餐廳')" class="px-3 py-2 hover:bg-slate-50 cursor-pointer">正餐餐廳</div>
-            <div onclick="selectType('休閒小酌')" class="px-3 py-2 hover:bg-slate-50 cursor-pointer">休閒小酌</div>
-            <div onclick="selectType('街頭小吃')" class="px-3 py-2 hover:bg-slate-50 cursor-pointer">街頭小吃</div>
+        <div class="flex items-center space-x-3 text-slate-500">
+          <div class="relative">
+            <button onclick="toggleDropdown('sort-dropdown')" class="flex items-center space-x-1 font-medium hover:text-baidu-blue">
+              <i class="fa-solid fa-arrow-down-short-wide text-[11px]"></i>
+              <span id="current-sort-label">默認排序</span>
+              <i class="fa-solid fa-caret-down text-[9px] text-slate-400"></i>
+            </button>
+            <div id="sort-dropdown" class="hidden absolute top-7 right-0 w-32 bg-white border border-slate-200 rounded-xl shadow-xl z-40 py-1 text-xs">
+              <div onclick="applySort('default')" class="px-3 py-2 hover:bg-slate-50 cursor-pointer">默認排序</div>
+              <div onclick="applySort('rating')" class="px-3 py-2 hover:bg-slate-50 cursor-pointer">評分最高</div>
+              <div onclick="applySort('price-asc')" class="px-3 py-2 hover:bg-slate-50 cursor-pointer">價格由低到高</div>
+              <div onclick="applySort('price-desc')" class="px-3 py-2 hover:bg-slate-50 cursor-pointer">價格由高到低</div>
+            </div>
           </div>
-        </div>
 
-        <div class="relative">
-          <button onclick="toggleDropdown('city-dropdown')" class="flex items-center space-x-1 text-slate-700 hover:text-baidu-blue font-medium">
-            <span id="current-city-label">東莞市</span>
-            <i class="fa-solid fa-caret-down text-[10px] text-slate-400"></i>
-          </button>
-          <div id="city-dropdown" class="hidden absolute top-7 right-0 w-32 bg-white border border-slate-200 rounded-xl shadow-xl z-40 py-1 text-xs">
-            <div onclick="selectCity('東莞市 (全部)')" class="px-3 py-2 hover:bg-slate-50 cursor-pointer font-medium">東莞市 (全部)</div>
-            <div onclick="selectCity('東城區')" class="px-3 py-2 hover:bg-slate-50 cursor-pointer">東城區</div>
-            <div onclick="selectCity('莞城區')" class="px-3 py-2 hover:bg-slate-50 cursor-pointer">莞城區</div>
-            <div onclick="selectCity('石碣鎮')" class="px-3 py-2 hover:bg-slate-50 cursor-pointer">石碣鎮</div>
-            <div onclick="selectCity('清溪鎮')" class="px-3 py-2 hover:bg-slate-50 cursor-pointer">清溪鎮</div>
-          </div>
+          <span class="text-slate-300">|</span>
+          <span class="font-bold text-slate-700">共 <span id="places-count" class="text-baidu-blue font-extrabold">18</span> 間</span>
         </div>
       </div>
     </header>
 
-    <!-- Content Area: Map View (Default) or List View -->
-    <main class="flex-1 relative overflow-y-auto pb-24 flex flex-col" id="main-scroll-container">
+    <!-- Content List View -->
+    <main class="flex-1 relative overflow-y-auto pb-24 px-3 pt-3 space-y-3" id="main-scroll-container">
       
-      <!-- 1. Interactive Map View (Active on load) -->
-      <section id="places-map-view" class="w-full flex-1 flex flex-col relative bg-slate-100">
-        <!-- Leaflet Map Container -->
-        <div id="leaflet-map" class="w-full flex-1 relative"></div>
-        
-        <!-- Floating Controls on Map -->
-        <div class="absolute top-4 right-4 z-[500] flex flex-col space-y-2">
-          <button onclick="switchMainTab('list')" class="px-3 py-2 bg-white/95 backdrop-blur-md rounded-xl shadow-lg flex items-center space-x-1.5 text-xs text-slate-800 font-bold hover:text-baidu-blue active:scale-95 transition border border-slate-200" title="切換至列表">
-            <i class="fa-solid fa-list-ul text-baidu-blue"></i>
-            <span>列表模式</span>
-          </button>
-          <button onclick="focusDeltaPlant()" class="px-3 py-2 bg-gradient-to-r from-amber-500 to-yellow-500 text-white rounded-xl shadow-lg flex items-center space-x-1.5 text-xs font-bold hover:from-amber-600 hover:to-yellow-600 active:scale-95 transition border border-amber-300" title="定位台達7廠">
-            <i class="fa-solid fa-star text-yellow-100 text-xs"></i>
-            <span>★ 台達7廠</span>
-          </button>
-          <button onclick="resetMapView()" class="w-9 h-9 bg-white rounded-xl shadow-md flex items-center justify-center text-slate-700 hover:text-baidu-blue active:scale-95 transition self-end" title="復位地圖">
-            <i class="fa-solid fa-location-crosshairs text-sm"></i>
-          </button>
-          <button onclick="openAddPlaceModal()" class="w-9 h-9 bg-baidu-blue text-white rounded-xl shadow-md flex items-center justify-center hover:bg-baidu-darkblue active:scale-95 transition self-end" title="在此新增店">
-            <i class="fa-solid fa-plus text-sm"></i>
+      <!-- Special Landmark Card: 台達電子 (東莞) 7廠 -->
+      <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-3.5 text-white shadow-md relative overflow-hidden border border-slate-800">
+        <div class="absolute -right-6 -bottom-6 opacity-10 text-white pointer-events-none">
+          <i class="fa-solid fa-building-user text-8xl"></i>
+        </div>
+        <div class="flex items-start justify-between relative z-10">
+          <div class="space-y-1">
+            <div class="flex items-center space-x-2">
+              <span class="px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black uppercase flex items-center space-x-1">
+                <i class="fa-solid fa-star text-[9px]"></i>
+                <span>企業基地地標</span>
+              </span>
+              <h3 class="font-bold text-sm tracking-wide text-white">台達電子 (東莞) 7廠</h3>
+            </div>
+            <p class="text-[11px] text-slate-300">東莞市石碣鎮鶴田廈村振園路6號</p>
+          </div>
+          <button onclick="openBaiduMapSearch('东莞市石碣镇台达电子(东莞)有限公司7厂')" 
+                  class="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-xs text-amber-300 border border-amber-300/30 font-bold transition flex items-center space-x-1 shrink-0">
+            <i class="fa-solid fa-location-arrow text-[10px]"></i>
+            <span>百度搜尋地標</span>
           </button>
         </div>
 
-        <!-- Floating Card at Bottom of Map for Selected Restaurant or Landmark -->
-        <div id="map-active-card" class="hidden absolute bottom-4 left-3 right-3 z-[500] bg-white rounded-2xl p-4 shadow-2xl border border-slate-200 transition-all transform duration-300">
-          <!-- Populated by JS -->
+        <div class="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between text-xs relative z-10">
+          <span class="text-[11px] text-slate-300 flex items-center">
+            <i class="fa-solid fa-fire text-amber-400 mr-1 text-[11px]"></i>
+            廠區附近推薦：
+          </span>
+          <div class="flex space-x-2">
+            <button onclick="quickFilterShops('哂贡 越南粉')" class="px-2 py-0.5 rounded-md bg-white/10 hover:bg-baidu-blue text-[11px] text-white transition">
+              哂貢越南粉
+            </button>
+            <button onclick="quickFilterShops('新疆羊肉燒烤 (鶴田廈店)')" class="px-2 py-0.5 rounded-md bg-white/10 hover:bg-baidu-blue text-[11px] text-white transition">
+              鶴田廈烤羊肉
+            </button>
+          </div>
         </div>
-      </section>
-
-      <!-- 2. Places List View (Hidden initially) -->
-      <section id="places-list-view" class="hidden divide-y divide-slate-100 bg-white flex-1">
-        <!-- Rendered dynamically by renderPlacesList() -->
-      </section>
-
-      <!-- Floating Quick Toggle on List View -->
-      <div id="floating-map-btn" class="hidden fixed bottom-20 right-4 z-20">
-        <button onclick="switchMainTab('map')" class="bg-slate-900/90 text-white px-3.5 py-2.5 rounded-full shadow-2xl flex items-center space-x-2 text-xs font-semibold backdrop-blur-md hover:bg-baidu-blue active:scale-95 transition border border-white/20">
-          <i class="fa-solid fa-map-location-dot text-baidu-orange"></i>
-          <span>地圖找店</span>
-        </button>
       </div>
+
+      <!-- Places List Container -->
+      <section id="places-list-view" class="space-y-3">
+        <!-- Dynamically rendered via renderPlacesList() -->
+      </section>
 
     </main>
 
-    <!-- Fixed Bottom Action Bar (Simplified: Add New Place only) -->
+    <!-- Fixed Bottom Action Bar -->
     <footer class="fixed bottom-0 max-w-md w-full bg-white/95 backdrop-blur-md border-t border-slate-200 z-30 px-4 py-2.5 flex items-center justify-center shadow-lg">
       <button onclick="openAddPlaceModal()" class="w-full bg-baidu-blue hover:bg-baidu-darkblue active:scale-98 text-white font-bold text-sm py-2.5 rounded-full shadow-md flex items-center justify-center space-x-2 transition">
         <i class="fa-solid fa-plus text-xs"></i>
-        <span>添加新美食</span>
+        <span>添加新美食 (支援百度地圖即時驗證)</span>
       </button>
     </footer>
 
@@ -296,7 +219,13 @@
 
         <form id="form-add-place" onsubmit="handleCreatePlace(event)" class="mt-4 space-y-3.5 text-xs">
           <div>
-            <label class="block font-semibold text-slate-700 mb-1">店名 / 餐廳名稱 *</label>
+            <div class="flex items-center justify-between mb-1">
+              <label class="font-semibold text-slate-700">店名 / 餐廳名稱 *</label>
+              <button type="button" onclick="previewBaiduSearchFromForm()" class="text-baidu-blue hover:underline text-[11px] font-semibold flex items-center space-x-1">
+                <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+                <span>在百度地圖預覽搜索</span>
+              </button>
+            </div>
             <input type="text" id="new-place-name" required placeholder="例如：喜茶 (世博廣場店)" 
                    class="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-baidu-blue outline-none">
           </div>
@@ -338,7 +267,7 @@
           </div>
 
           <div>
-            <label class="block font-semibold text-slate-700 mb-1">初次評分 (星級)</label>
+            <label class="block font-semibold text-slate-700 mb-1">推薦星級</label>
             <div class="flex items-center space-x-1.5 text-amber-400 text-lg cursor-pointer" id="new-rating-stars">
               <i class="fa-solid fa-star" onclick="setNewShopRating(1)"></i>
               <i class="fa-solid fa-star" onclick="setNewShopRating(2)"></i>
@@ -350,8 +279,8 @@
           </div>
 
           <div>
-            <label class="block font-semibold text-slate-700 mb-1">第一條探店短評</label>
-            <textarea id="new-place-review" rows="2" placeholder="寫寫你的必吃推薦菜、口味、排隊情況..." 
+            <label class="block font-semibold text-slate-700 mb-1">探店簡評與招牌菜</label>
+            <textarea id="new-place-review" rows="2" placeholder="寫寫你的必吃推薦菜、口味、環境特色..." 
                       class="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-baidu-blue outline-none"></textarea>
           </div>
 
@@ -366,7 +295,6 @@
     <!-- MODAL 2: Reviews & Rating Drawer -->
     <div id="modal-reviews-drawer" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center hidden opacity-0 transition-opacity duration-200">
       <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl max-h-[88vh] flex flex-col p-5 shadow-2xl">
-        <!-- Header -->
         <div class="flex items-start justify-between pb-3 border-b border-slate-100">
           <div>
             <span class="inline-block px-2 py-0.5 bg-orange-100 text-baidu-orange text-[10px] font-bold rounded-md mb-1" id="drawer-tag">火鍋</span>
@@ -389,17 +317,16 @@
               <p class="text-[11px] text-slate-400 mt-0.5"><span id="drawer-reviews-count">3</span> 條真實評價</p>
             </div>
           </div>
-          <button onclick="focusReviewInput()" class="px-3 py-1.5 bg-white border border-baidu-blue text-baidu-blue font-bold text-xs rounded-xl shadow-xs hover:bg-blue-50 active:scale-95 transition">
-            <i class="fa-solid fa-pen-to-square mr-1"></i>寫評價
+          <button id="drawer-baidu-btn" class="px-3 py-1.5 bg-blue-50 border border-baidu-blue text-baidu-blue font-bold text-xs rounded-xl hover:bg-blue-100 active:scale-95 transition flex items-center space-x-1">
+            <i class="fa-solid fa-location-arrow text-[10px]"></i>
+            <span>百度地圖查看</span>
           </button>
         </div>
 
         <!-- Reviews Scrollable List -->
-        <div class="flex-1 overflow-y-auto space-y-3 pr-1 py-1" id="drawer-reviews-list">
-          <!-- Rendered dynamically -->
-        </div>
+        <div class="flex-1 overflow-y-auto space-y-3 pr-1 py-1" id="drawer-reviews-list"></div>
 
-        <!-- Add Review Form (Footer input) -->
+        <!-- Add Review Form -->
         <div class="pt-3 border-t border-slate-100">
           <div class="flex items-center justify-between mb-1.5">
             <span class="text-xs font-semibold text-slate-700">添加我的評分</span>
@@ -433,17 +360,15 @@
   </div>
 
   <script>
-    // Initial Dataset representing all 18 places from Dongguan screenshot records
+    /* In-memory Restaurant Dataset */
     const INITIAL_RESTAURANTS = [
       {
         id: "r1",
-        name: "蒸武门 (清溪店)",
+        name: "蒸武門 (清溪店)",
         address: "清溪镇振兴一路28号301室",
         tag: "粤菜/大排档",
         type: "正餐餐厅",
         city: "清溪镇",
-        lat: 22.8452,
-        lng: 114.1560,
         rating: 4.7,
         avgPrice: 65,
         reviews: [
@@ -458,8 +383,6 @@
         tag: "异国料理",
         type: "休闲小酌",
         city: "东城区",
-        lat: 23.0180,
-        lng: 113.7890,
         rating: 4.8,
         avgPrice: 90,
         reviews: [
@@ -473,8 +396,6 @@
         tag: "烧烤/烤肉",
         type: "街头小吃",
         city: "东城区",
-        lat: 23.0295,
-        lng: 113.7710,
         rating: 4.9,
         avgPrice: 50,
         reviews: [
@@ -488,8 +409,6 @@
         tag: "火锅/牛肉",
         type: "正餐餐厅",
         city: "东城区",
-        lat: 23.0378,
-        lng: 113.7782,
         rating: 4.6,
         avgPrice: 70,
         reviews: [
@@ -503,8 +422,6 @@
         tag: "烧烤/烤肉",
         type: "正餐餐厅",
         city: "东城区",
-        lat: 23.0315,
-        lng: 113.7915,
         rating: 4.6,
         avgPrice: 85,
         reviews: [
@@ -513,17 +430,15 @@
       },
       {
         id: "r6",
-        name: "西贡越南粉",
-        address: "东城街道石碣镇富祥街3号102室",
+        name: "哂贡 越南粉 (石碣店)",
+        address: "石碣镇崇焕中路凯德国际酒店东侧 (王洲湾1号旁)",
         tag: "异国料理",
         type: "街头小吃",
         city: "石碣鎮",
-        lat: 23.0920,
-        lng: 113.8420,
-        rating: 4.5,
+        rating: 4.6,
         avgPrice: 35,
         reviews: [
-          { author: "嗦粉小仙女", score: 4.5, date: "2026-08-11", text: "汤头牛骨味浓郁，加入九层塔和柠檬汁酸甜解腻！" }
+          { author: "嗦粉小仙女", score: 5, date: "2026-08-11", text: "就在台达7厂东侧近邻！汤头牛骨味浓郁，加入九层塔和柠檬汁酸甜解腻！" }
         ]
       },
       {
@@ -533,8 +448,6 @@
         tag: "火锅/牛肉",
         type: "正餐餐厅",
         city: "高埗鎮",
-        lat: 23.0785,
-        lng: 113.7290,
         rating: 4.8,
         avgPrice: 95,
         reviews: [
@@ -548,8 +461,6 @@
         tag: "粤菜/大排档",
         type: "正餐餐厅",
         city: "东城区",
-        lat: 23.0360,
-        lng: 113.7840,
         rating: 4.7,
         avgPrice: 110,
         reviews: [
@@ -563,8 +474,6 @@
         tag: "异国料理",
         type: "休闲小酌",
         city: "东城区",
-        lat: 23.0480,
-        lng: 113.7885,
         rating: 4.7,
         avgPrice: 78,
         reviews: [
@@ -578,8 +487,6 @@
         tag: "粤菜/大排档",
         type: "正餐餐厅",
         city: "莞城區",
-        lat: 23.0425,
-        lng: 113.7590,
         rating: 4.9,
         avgPrice: 75,
         reviews: [
@@ -593,8 +500,6 @@
         tag: "粤菜/大排档",
         type: "正餐餐厅",
         city: "东城区",
-        lat: 23.0322,
-        lng: 113.7865,
         rating: 4.8,
         avgPrice: 150,
         reviews: [
@@ -608,8 +513,6 @@
         tag: "火锅/牛肉",
         type: "正餐餐厅",
         city: "东城区",
-        lat: 23.0345,
-        lng: 113.7830,
         rating: 4.7,
         avgPrice: 100,
         reviews: [
@@ -623,8 +526,6 @@
         tag: "烧烤/烤肉",
         type: "正餐餐厅",
         city: "莞城區",
-        lat: 23.0460,
-        lng: 113.7535,
         rating: 4.8,
         avgPrice: 80,
         reviews: [
@@ -638,8 +539,6 @@
         tag: "甜品/小吃",
         type: "街头小吃",
         city: "东城区",
-        lat: 23.0328,
-        lng: 113.7872,
         rating: 4.6,
         avgPrice: 22,
         reviews: [
@@ -653,8 +552,6 @@
         tag: "甜品/小吃",
         type: "街头小吃",
         city: "东城区",
-        lat: 23.0350,
-        lng: 113.7805,
         rating: 4.7,
         avgPrice: 28,
         reviews: [
@@ -668,8 +565,6 @@
         tag: "粤菜/大排档",
         type: "正餐餐厅",
         city: "东城区",
-        lat: 23.0370,
-        lng: 113.7820,
         rating: 4.8,
         avgPrice: 68,
         reviews: [
@@ -679,12 +574,10 @@
       {
         id: "r17",
         name: "绿茶餐厅 (东莞国贸中心店)",
-        address: "东城街道东泰社区鸿福东路1号民营国贸城5号楼4...",
+        address: "东城街道东泰社区鸿福东路1号民营国贸城5号楼4层",
         tag: "粤菜/大排档",
         type: "正餐餐厅",
         city: "东城区",
-        lat: 23.0135,
-        lng: 113.7650,
         rating: 4.6,
         avgPrice: 75,
         reviews: [
@@ -693,140 +586,121 @@
       },
       {
         id: "r18",
-        name: "新疆羊肉烧烤 (鹤田厦店)",
-        address: "石碣镇石碣裕田路32号146室",
-        tag: "烧烤/烤肉",
-        type: "街头小吃",
+        name: "新疆羊肉燒烤 (鶴田廈店)",
+        address: "石碣鎮石碣裕田路32號146室",
+        tag: "燒烤/烤肉",
+        type: "街頭小吃",
         city: "石碣鎮",
-        lat: 23.0980,
-        lng: 113.8375,
         rating: 4.7,
         avgPrice: 48,
         reviews: [
-          { author: "宵夜冠军", score: 5, date: "2026-08-19", text: "石碣宵夜宝藏，烤羊排外焦里嫩，馕饼烤得酥酥脆脆。" }
+          { author: "宵夜冠軍", score: 5, date: "2026-08-19", text: "石碣宵夜寶藏，烤羊排外焦里嫩，饢餅烤得酥酥脆脆。" }
         ]
       }
     ];
 
-    // State Variables
-    let places = [...INITIAL_RESTAURANTS];
-    let activeTab = 'map'; // Always default directly to 'map'
+    /* In-memory store */
+    let places = JSON.parse(JSON.stringify(INITIAL_RESTAURANTS));
     let currentFilterTag = '全部標籤';
-    let currentFilterType = '全部類型';
     let currentFilterCity = '東莞市 (全部)';
+    let currentSortOrder = 'default';
     let searchQuery = '';
     let currentReviewingPlaceId = null;
     let newShopRatingValue = 5.0;
     let userReviewRatingValue = 5.0;
-    
-    // Landmark: Delta Electronics Dongguan Plant 7 (Hetianxia Industrial Zone, Shijie Town)
-    const DELTA_PLANT_7 = {
-      id: "delta_plant_7",
-      name: "台達電子 (東莞) 7廠",
-      subName: "Delta Electronics Plant 7 (鶴田廈廠區)",
-      address: "東莞市石碣鎮鶴田廈村振園路6號",
-      city: "石碣鎮",
-      lat: 23.0807,
-      lng: 113.7605,
-      type: "企業基地地標",
-      nearbyShops: ["新疆羊肉燒烤 (鶴田廈店)", "西貢越南粉"]
-    };
 
-    // Leaflet map pointers
-    let map = null;
-    let markersLayer = null;
-    let leafletMarkers = {};
-    let deltaMarker = null;
-
-    window.addEventListener('DOMContentLoaded', () => {
-      renderPlacesList();
-
-      // Immediately initialize map view on opening
-      setTimeout(() => {
-        initMap();
-      }, 100);
-
-      // Window resize handler for Leaflet
-      window.addEventListener('resize', () => {
-        if (map && activeTab === 'map') {
-          map.invalidateSize();
-        }
-      });
+    /**
+     * Builds standard official Baidu Map URI API URL
+     * Safe across mobile web, desktop, and app
+     */
+    function getBaiduMapUrl(keyword, city = '东莞') {
+      const cleanKeyword = keyword.trim();
+      const cleanRegion = (city && city !== '東莞市 (全部)') 
+        ? city.replace(/[（(].*?[）)]/g, '').trim() 
+        : '东莞';
       
-      // Close dropdowns on outside click
-      document.addEventListener('click', (e) => {
-        if (!e.target.closest('#tag-dropdown') && !e.target.closest('[onclick*="tag-dropdown"]')) {
-          document.getElementById('tag-dropdown').classList.add('hidden');
-        }
-        if (!e.target.closest('#type-dropdown') && !e.target.closest('[onclick*="type-dropdown"]')) {
-          document.getElementById('type-dropdown').classList.add('hidden');
-        }
-        if (!e.target.closest('#city-dropdown') && !e.target.closest('[onclick*="city-dropdown"]')) {
-          document.getElementById('city-dropdown').classList.add('hidden');
-        }
-      });
-    });
+      // Official Baidu Map Place Search URI (No AK required, opens POI list or card directly)
+      return `https://api.map.baidu.com/place/search?query=${encodeURIComponent(cleanKeyword)}&region=${encodeURIComponent(cleanRegion)}&output=html&src=webapp.baidu.foodmap`;
+    }
 
-    function switchMainTab(tab) {
-      activeTab = tab;
-      const navList = document.getElementById('nav-tab-list');
-      const navMap = document.getElementById('nav-tab-map');
-      const listView = document.getElementById('places-list-view');
-      const mapView = document.getElementById('places-map-view');
-      const floatMapBtn = document.getElementById('floating-map-btn');
-
-      if (tab === 'list') {
-        navList.className = 'tab-active transition';
-        navMap.className = 'transition hover:text-slate-900';
-        listView.classList.remove('hidden');
-        mapView.classList.add('hidden');
-        if (floatMapBtn) floatMapBtn.classList.remove('hidden');
-      } else {
-        navMap.className = 'tab-active transition';
-        navList.className = 'transition hover:text-slate-900';
-        listView.classList.add('hidden');
-        mapView.classList.remove('hidden');
-        if (floatMapBtn) floatMapBtn.classList.add('hidden');
-
-        if (!map) {
-          setTimeout(() => {
-            initMap();
-          }, 80);
-        } else {
-          setTimeout(() => {
-            map.invalidateSize(true);
-            syncMapMarkers();
-          }, 100);
-        }
+    /**
+     * Opens external URL safely to prevent iframe popup blocking
+     */
+    function openExternalUrl(url, label) {
+      try {
+        const link = document.createElement('a');
+        link.href = url;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast(`已前往百度地圖：${label}`);
+      } catch (e) {
+        window.open(url, '_blank');
       }
     }
 
+    function openBaiduMapSearch(queryKeyword, city = '东莞') {
+      const url = getBaiduMapUrl(queryKeyword, city);
+      openExternalUrl(url, queryKeyword);
+    }
+
+    function searchPlaceOnBaidu(name, city) {
+      const url = getBaiduMapUrl(name, city || '东莞');
+      openExternalUrl(url, name);
+    }
+
+    function previewBaiduSearchFromForm() {
+      const name = document.getElementById('new-place-name').value.trim();
+      const area = document.getElementById('new-place-area').value;
+      if (!name) {
+        showToast('請先輸入店名再進行百度搜尋預覽');
+        return;
+      }
+      searchPlaceOnBaidu(name, area);
+    }
+
     function getFilteredPlaces() {
-      return places.filter(item => {
+      let result = places.filter(item => {
         const matchTag = (currentFilterTag === '全部標籤' || item.tag === currentFilterTag);
-        const matchType = (currentFilterType === '全部類型' || item.type === currentFilterType);
         const matchCity = (currentFilterCity === '東莞市 (全部)' || item.city === currentFilterCity);
         const query = searchQuery.trim().toLowerCase();
         const matchSearch = !query || 
                             item.name.toLowerCase().includes(query) || 
                             item.address.toLowerCase().includes(query) ||
                             item.tag.toLowerCase().includes(query);
-        return matchTag && matchType && matchCity && matchSearch;
+        return matchTag && matchCity && matchSearch;
       });
+
+      if (currentSortOrder === 'rating') {
+        result.sort((a, b) => b.rating - a.rating);
+      } else if (currentSortOrder === 'price-asc') {
+        result.sort((a, b) => (a.avgPrice || 9999) - (b.avgPrice || 9999));
+      } else if (currentSortOrder === 'price-desc') {
+        result.sort((a, b) => (b.avgPrice || 0) - (a.avgPrice || 0));
+      }
+
+      return result;
     }
 
     function renderPlacesList() {
       const container = document.getElementById('places-list-view');
       const filtered = getFilteredPlaces();
       
-      document.getElementById('places-count').textContent = filtered.length;
+      const countEl = document.getElementById('places-count');
+      if (countEl) countEl.textContent = filtered.length;
+
+      if (!container) return;
 
       if (filtered.length === 0) {
         container.innerHTML = `
-          <div class="py-16 text-center text-slate-400">
-            <i class="fa-solid fa-utensils text-4xl mb-3 text-slate-300"></i>
-            <p class="text-sm font-medium">沒有找到符合條件的美食店鋪</p>
-            <button onclick="resetFilters()" class="mt-3 text-xs text-baidu-blue font-bold">重置篩選條件</button>
+          <div class="py-16 text-center text-slate-400 text-xs bg-white rounded-2xl shadow-xs border border-slate-100 p-6">
+            <i class="fa-solid fa-utensils text-3xl mb-2 text-slate-300"></i>
+            <p class="font-medium text-slate-500">沒有找到符合條件的美食店鋪</p>
+            <button onclick="resetFilters()" class="mt-3 px-3 py-1.5 bg-blue-50 text-baidu-blue rounded-xl font-bold hover:bg-blue-100 transition">
+              重置全部篩選
+            </button>
           </div>
         `;
         return;
@@ -834,354 +708,131 @@
 
       let html = '';
       filtered.forEach(place => {
-        const avgScore = place.rating.toFixed(1);
+        const avgScore = Number(place.rating).toFixed(1);
         const reviewCount = place.reviews ? place.reviews.length : 0;
+        const firstReview = (place.reviews && place.reviews.length > 0) ? place.reviews[0].text : '';
 
         html += `
-          <div class="p-4 hover:bg-slate-50 transition cursor-pointer select-none group" onclick="focusPlaceOnMap('${place.id}')">
+          <div class="bg-white rounded-2xl p-4 shadow-xs border border-slate-100 hover:shadow-md transition">
             <div class="flex items-start justify-between">
-              <!-- Left Content -->
-              <div class="flex items-start space-x-3 flex-1 min-w-0 pr-2">
-                <!-- Baidu Maps Orange Food Icon -->
-                <div class="mt-0.5 w-6 h-6 rounded-md bg-amber-50 border border-amber-200 flex items-center justify-center shrink-0">
-                  <i class="fa-solid fa-utensils text-baidu-orange text-xs"></i>
+              <!-- Info -->
+              <div class="flex-1 min-w-0 pr-3">
+                <div class="flex items-center space-x-1.5">
+                  <span class="px-2 py-0.5 rounded-md bg-orange-50 text-baidu-orange border border-orange-200/60 font-bold text-[10px]">
+                    ${place.tag}
+                  </span>
+                  <span class="text-xs text-slate-400">${place.city || ''}</span>
                 </div>
 
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center space-x-2">
-                    <h4 class="text-[15px] font-bold text-slate-900 group-hover:text-baidu-blue transition truncate">
-                      ${escapeHtml(place.name)}
-                    </h4>
-                  </div>
+                <h3 class="text-base font-bold text-slate-900 mt-1 truncate hover:text-baidu-blue transition cursor-pointer" onclick="openReviewsDrawer('${place.id}')">
+                  ${escapeHtml(place.name)}
+                </h3>
 
-                  <p class="text-xs text-slate-500 mt-1 truncate">
-                    ${escapeHtml(place.address)}
-                  </p>
+                <p class="text-xs text-slate-500 mt-1 flex items-start space-x-1">
+                  <i class="fa-solid fa-location-dot text-slate-400 mt-0.5 text-[11px] shrink-0"></i>
+                  <span class="truncate">${escapeHtml(place.address)}</span>
+                </p>
 
-                  <div class="flex items-center space-x-3 mt-2 text-[11px] text-slate-500">
-                    <div class="flex items-center space-x-1 text-amber-500 font-bold">
-                      <i class="fa-solid fa-star text-[10px]"></i>
-                      <span>${avgScore}</span>
-                    </div>
-                    <span class="text-slate-300">|</span>
-                    <span class="text-slate-600">${reviewCount}條點評</span>
-                    <span class="text-slate-300">|</span>
-                    <span class="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[10px]">${place.tag}</span>
-                    ${place.avgPrice ? `<span class="text-slate-500">¥${place.avgPrice}/人</span>` : ''}
+                <!-- Rating and Price Info -->
+                <div class="flex items-center space-x-2 mt-2 text-xs">
+                  <div class="flex items-center text-amber-500 font-bold">
+                    <i class="fa-solid fa-star text-[11px] mr-1"></i>
+                    <span>${avgScore}</span>
                   </div>
+                  <span class="text-slate-300">|</span>
+                  <span class="text-slate-500 font-medium">${reviewCount} 則評價</span>
+                  ${place.avgPrice ? `
+                    <span class="text-slate-300">|</span>
+                    <span class="text-slate-700 font-bold">人均 ¥${place.avgPrice}</span>
+                  ` : ''}
                 </div>
               </div>
 
-              <!-- Right Actions: Review and More -->
-              <div class="flex items-center space-x-2.5 text-slate-400 shrink-0 ml-1" onclick="event.stopPropagation()">
-                <button onclick="openReviewsDrawer('${place.id}')" title="撰寫評價/評分" class="p-1.5 rounded-lg hover:text-baidu-blue hover:bg-blue-50 transition">
-                  <i class="fa-solid fa-pen-to-square text-sm"></i>
-                </button>
-                <button onclick="showPlaceActionSheet('${place.id}')" title="更多" class="p-1.5 rounded-lg hover:text-slate-700 hover:bg-slate-100 transition">
-                  <i class="fa-solid fa-ellipsis-vertical text-sm"></i>
-                </button>
+              <!-- More Action Button -->
+              <button onclick="showPlaceActionSheet('${place.id}')" class="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-50 rounded-xl transition shrink-0" title="操作選項">
+                <i class="fa-solid fa-ellipsis text-base"></i>
+              </button>
+            </div>
+
+            <!-- Review Highlight Snippet -->
+            ${firstReview ? `
+              <div class="mt-3 p-2 bg-slate-50 rounded-xl text-[11px] text-slate-600 line-clamp-1 border border-slate-100 flex items-center space-x-1.5">
+                <i class="fa-solid fa-quote-left text-baidu-blue/60 text-[10px] shrink-0"></i>
+                <span class="truncate">${escapeHtml(firstReview)}</span>
               </div>
+            ` : ''}
+
+            <!-- Bottom Actions: Direct Baidu Search & Reviews -->
+            <div class="mt-3 pt-2.5 border-t border-slate-100 flex items-center space-x-2">
+              <a href="${getBaiduMapUrl(place.name, place.city)}" 
+                 target="_blank" 
+                 rel="noopener noreferrer"
+                 onclick="event.stopPropagation(); showToast('正在打開百度地圖：${escapeJsString(place.name)}');"
+                 class="flex-1 py-2 px-3 rounded-xl bg-baidu-blue hover:bg-baidu-darkblue active:scale-98 text-white text-xs font-bold shadow-xs transition flex items-center justify-center space-x-1.5 no-underline text-center">
+                <i class="fa-solid fa-diamond-turn-right text-baidu-red text-[11px] bg-white rounded-full p-0.5"></i>
+                <span>百度地圖導航直連</span>
+              </a>
+
+              <button onclick="openReviewsDrawer('${place.id}')" 
+                      class="py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-98 text-slate-700 text-xs font-bold transition flex items-center space-x-1 shrink-0">
+                <i class="fa-solid fa-comment-dots text-baidu-blue text-xs"></i>
+                <span>點評 (${reviewCount})</span>
+              </button>
             </div>
           </div>
         `;
       });
-
-      html += `
-        <div class="py-5 text-center text-xs text-slate-400 select-none">
-          沒有更多啦
-        </div>
-      `;
 
       container.innerHTML = html;
-    }
-
-    function initMap() {
-      const mapContainer = document.getElementById('leaflet-map');
-      if (!mapContainer) return;
-
-      try {
-        // Centered on Dongguan, Guangdong
-        map = L.map('leaflet-map', {
-          zoomControl: false,
-          attributionControl: true
-        }).setView([23.033, 113.785], 12);
-
-        // High-speed Chinese tiles (AutoNavi/GaoDe)
-        const amapTileLayer = L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
-          subdomains: ['1', '2', '3', '4'],
-          minZoom: 4,
-          maxZoom: 18,
-          attribution: '高德地圖 / 百度風格美食圖資'
-        });
-
-        // Backup CartoDB Tile Layer in case of restriction
-        amapTileLayer.on('tileerror', function() {
-          console.warn('AutoNavi tile fallback triggered');
-          L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-            subdomains: 'abcd',
-            maxZoom: 19
-          }).addTo(map);
-        });
-
-        amapTileLayer.addTo(map);
-
-        // Zoom buttons
-        L.control.zoom({ position: 'topleft' }).addTo(map);
-
-        markersLayer = L.layerGroup().addTo(map);
-
-        // Render markers
-        syncMapMarkers();
-
-        // Invalidate size once rendered
-        setTimeout(() => {
-          if (map) map.invalidateSize(true);
-        }, 150);
-
-        // Map click dismisses active popup card
-        map.on('click', function() {
-          document.getElementById('map-active-card').classList.add('hidden');
-        });
-      } catch (err) {
-        console.error('Failed to initialize map:', err);
-      }
-    }
-
-    function syncMapMarkers() {
-      if (!map || !markersLayer) return;
-      markersLayer.clearLayers();
-      leafletMarkers = {};
-
-      // 1. Render Delta Electronics Plant 7 Star Landmark Marker (★)
-      renderDeltaStarMarker();
-
-      // 2. Render Restaurant Markers
-      const filtered = getFilteredPlaces();
-
-      filtered.forEach(place => {
-        const iconHtml = `
-          <div class="relative group cursor-pointer">
-            <div class="w-8 h-8 rounded-full bg-baidu-orange text-white flex items-center justify-center shadow-lg border-2 border-white transform transition hover:scale-125">
-              <i class="fa-solid fa-utensils text-xs"></i>
-            </div>
-            <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-baidu-orange rotate-45 border-r border-b border-white"></div>
-          </div>
-        `;
-
-        const customIcon = L.divIcon({
-          html: iconHtml,
-          className: 'custom-map-pin',
-          iconSize: [32, 36],
-          iconAnchor: [16, 36],
-          popupAnchor: [0, -36]
-        });
-
-        const marker = L.marker([place.lat, place.lng], { icon: customIcon });
-        
-        marker.on('click', () => {
-          showMapActiveCard(place);
-          map.panTo([place.lat, place.lng]);
-        });
-
-        marker.addTo(markersLayer);
-        leafletMarkers[place.id] = marker;
-      });
-    }
-
-    function renderDeltaStarMarker() {
-      const starMarkerHtml = `
-        <div class="flex flex-col items-center cursor-pointer select-none group">
-          <div class="px-2 py-0.5 bg-red-600 text-white text-[10px] font-black rounded-full shadow-lg mb-1 whitespace-nowrap border-2 border-white flex items-center space-x-1 animate-pulse">
-            <i class="fa-solid fa-star text-amber-300 text-[10px]"></i>
-            <span>台達電子7廠</span>
-          </div>
-          <div class="relative flex items-center justify-center">
-            <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-300 text-white flex items-center justify-center shadow-2xl border-2 border-white ring-4 ring-yellow-400/40 transform transition group-hover:scale-125 group-active:scale-95">
-              <i class="fa-solid fa-star text-lg text-white drop-shadow"></i>
-            </div>
-            <div class="absolute -bottom-1 w-2.5 h-2.5 bg-amber-500 rotate-45 border-r border-b border-white"></div>
-          </div>
-        </div>
-      `;
-
-      const starIcon = L.divIcon({
-        html: starMarkerHtml,
-        className: 'custom-delta-star-pin',
-        iconSize: [80, 68],
-        iconAnchor: [40, 64],
-        popupAnchor: [0, -64]
-      });
-
-      deltaMarker = L.marker([DELTA_PLANT_7.lat, DELTA_PLANT_7.lng], { 
-        icon: starIcon,
-        zIndexOffset: 1000
-      });
-
-      deltaMarker.on('click', () => {
-        showDeltaPlantCard();
-        map.panTo([DELTA_PLANT_7.lat, DELTA_PLANT_7.lng]);
-      });
-
-      deltaMarker.addTo(markersLayer);
-    }
-
-    function showDeltaPlantCard() {
-      const card = document.getElementById('map-active-card');
-      card.innerHTML = `
-        <div class="flex items-start justify-between">
-          <div class="flex-1 pr-2">
-            <div class="flex items-center space-x-1.5">
-              <span class="px-2 py-0.5 bg-red-100 text-red-600 font-black text-[10px] rounded-full border border-red-200">
-                <i class="fa-solid fa-star text-amber-500 mr-0.5"></i>廠區地標
-              </span>
-              <h4 class="font-bold text-sm text-slate-900 truncate">${DELTA_PLANT_7.name}</h4>
-            </div>
-            <p class="text-xs text-slate-500 mt-1 truncate">
-              <i class="fa-solid fa-location-dot text-baidu-blue mr-1"></i>${DELTA_PLANT_7.address}
-            </p>
-            <div class="mt-2 text-xs bg-amber-50 rounded-xl p-2 border border-amber-200/60 text-slate-700">
-              <span class="font-bold text-amber-700 block mb-0.5"><i class="fa-solid fa-utensils text-xs mr-1 text-baidu-orange"></i>廠區周邊近距美食：</span>
-              <div class="flex flex-wrap gap-1.5 mt-1">
-                <button onclick="focusPlaceOnMap('r18')" class="px-2 py-0.5 bg-white rounded-md text-[11px] font-semibold text-slate-800 border border-amber-300 hover:text-baidu-blue shadow-2xs">
-                  新疆羊肉燒烤 (鶴田廈店) →
-                </button>
-                <button onclick="focusPlaceOnMap('r6')" class="px-2 py-0.5 bg-white rounded-md text-[11px] font-semibold text-slate-800 border border-amber-300 hover:text-baidu-blue shadow-2xs">
-                  西貢越南粉 →
-                </button>
-              </div>
-            </div>
-          </div>
-          <button onclick="document.getElementById('map-active-card').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 p-1">
-            <i class="fa-solid fa-xmark text-sm"></i>
-          </button>
-        </div>
-        <div class="mt-3 flex items-center space-x-2 pt-2 border-t border-slate-100">
-          <button onclick="navigateRouteTo('${DELTA_PLANT_7.name}')" class="w-full py-2 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 text-white text-xs font-bold shadow-md hover:opacity-90 active:scale-95 transition flex items-center justify-center space-x-1.5">
-            <i class="fa-solid fa-diamond-turn-right text-xs"></i>
-            <span>以台達7廠為起點導航周邊美食</span>
-          </button>
-        </div>
-      `;
-      card.classList.remove('hidden');
-    }
-
-    function focusDeltaPlant() {
-      if (activeTab !== 'map') {
-        switchMainTab('map');
-      }
-      setTimeout(() => {
-        if (map) {
-          map.invalidateSize(true);
-          map.flyTo([DELTA_PLANT_7.lat, DELTA_PLANT_7.lng], 15, { duration: 1.2 });
-          showDeltaPlantCard();
-        }
-      }, 200);
-      showToast('已定位至：★ 台達電子 (東莞) 7廠');
-    }
-
-    function showMapActiveCard(place) {
-      const card = document.getElementById('map-active-card');
-      card.innerHTML = `
-        <div class="flex items-start justify-between">
-          <div class="flex-1 pr-2">
-            <div class="flex items-center space-x-1.5">
-              <span class="px-1.5 py-0.5 bg-orange-100 text-baidu-orange font-bold text-[10px] rounded">${place.tag}</span>
-              <h4 class="font-bold text-sm text-slate-900 truncate">${escapeHtml(place.name)}</h4>
-            </div>
-            <p class="text-xs text-slate-500 mt-1 truncate"><i class="fa-solid fa-location-dot text-baidu-blue mr-1"></i>${escapeHtml(place.address)}</p>
-            <div class="flex items-center space-x-2 mt-2 text-xs">
-              <span class="text-amber-500 font-bold"><i class="fa-solid fa-star text-[11px] mr-0.5"></i>${place.rating.toFixed(1)} 分</span>
-              <span class="text-slate-400">(${place.reviews ? place.reviews.length : 0}條評價)</span>
-              ${place.avgPrice ? `<span class="text-slate-600 font-medium">人均 ¥${place.avgPrice}</span>` : ''}
-            </div>
-          </div>
-          <button onclick="document.getElementById('map-active-card').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 p-1">
-            <i class="fa-solid fa-xmark text-sm"></i>
-          </button>
-        </div>
-        <div class="mt-3 flex items-center space-x-2 pt-2 border-t border-slate-100">
-          <button onclick="openReviewsDrawer('${place.id}')" class="flex-1 py-1.5 rounded-xl bg-blue-50 text-baidu-blue text-xs font-bold hover:bg-blue-100 transition">
-            <i class="fa-solid fa-comments mr-1"></i>看評價 (${place.reviews ? place.reviews.length : 0})
-          </button>
-          <button onclick="navigateRouteTo('${place.name}')" class="flex-1 py-1.5 rounded-xl bg-baidu-blue text-white text-xs font-bold hover:bg-baidu-darkblue shadow-sm transition">
-            <i class="fa-solid fa-diamond-turn-right mr-1"></i>導航路線
-          </button>
-        </div>
-      `;
-      card.classList.remove('hidden');
-    }
-
-    function focusPlaceOnMap(id) {
-      const place = places.find(p => p.id === id);
-      if (!place) return;
-      switchMainTab('map');
-      setTimeout(() => {
-        if (map) {
-          map.invalidateSize(true);
-          map.flyTo([place.lat, place.lng], 15, { duration: 1.2 });
-          showMapActiveCard(place);
-        }
-      }, 250);
-    }
-
-    function resetMapView() {
-      if (map) {
-        map.flyTo([23.033, 113.785], 12);
-        document.getElementById('map-active-card').classList.add('hidden');
-        showToast('已復位全覽東莞美食分佈');
-      }
     }
 
     function toggleDropdown(id) {
       const el = document.getElementById(id);
       const isHidden = el.classList.contains('hidden');
-      ['tag-dropdown', 'type-dropdown', 'city-dropdown'].forEach(d => document.getElementById(d).classList.add('hidden'));
+      ['city-dropdown', 'sort-dropdown'].forEach(d => {
+        const item = document.getElementById(d);
+        if (item) item.classList.add('hidden');
+      });
       if (isHidden) el.classList.remove('hidden');
     }
 
     function selectTag(tag) {
       currentFilterTag = tag;
-      document.getElementById('current-tag-label').textContent = tag;
-      document.getElementById('tag-dropdown').classList.add('hidden');
+      document.querySelectorAll('.tag-pill').forEach(btn => {
+        if (btn.getAttribute('data-tag') === tag) {
+          btn.classList.add('filter-pill-active');
+        } else {
+          btn.classList.remove('filter-pill-active');
+        }
+      });
       renderPlacesList();
-      if (map) syncMapMarkers();
-    }
-
-    function selectType(type) {
-      currentFilterType = type;
-      document.getElementById('current-type-label').textContent = type;
-      document.getElementById('type-dropdown').classList.add('hidden');
-      renderPlacesList();
-      if (map) syncMapMarkers();
     }
 
     function selectCity(city) {
       currentFilterCity = city;
-      document.getElementById('current-city-label').textContent = city.replace(' (全部)', '');
+      document.getElementById('current-city-label').textContent = city;
       document.getElementById('city-dropdown').classList.add('hidden');
       renderPlacesList();
-      if (map) syncMapMarkers();
     }
 
-    function resetFilters() {
-      currentFilterTag = '全部標籤';
-      currentFilterType = '全部類型';
-      currentFilterCity = '東莞市 (全部)';
-      searchQuery = '';
-      document.getElementById('current-tag-label').textContent = '全部標籤';
-      document.getElementById('current-type-label').textContent = '全部類型';
-      document.getElementById('current-city-label').textContent = '東莞市';
-      document.getElementById('search-input').value = '';
+    function applySort(order) {
+      currentSortOrder = order;
+      const labels = {
+        'default': '默認排序',
+        'rating': '評分最高',
+        'price-asc': '價格由低到高',
+        'price-desc': '價格由高到低'
+      };
+      document.getElementById('current-sort-label').textContent = labels[order] || '默認排序';
+      document.getElementById('sort-dropdown').classList.add('hidden');
       renderPlacesList();
-      if (map) syncMapMarkers();
     }
 
-    function toggleSearchBar() {
-      const bar = document.getElementById('quick-search-box');
-      bar.classList.toggle('hidden');
-      if (!bar.classList.contains('hidden')) {
-        document.getElementById('search-input').focus();
-      }
+    function quickFilterShops(keyword) {
+      const searchBox = document.getElementById('search-input');
+      searchBox.value = keyword;
+      handleSearch(keyword);
+      showToast(`已篩選：${keyword}`);
     }
 
     function handleSearch(val) {
@@ -1193,7 +844,6 @@
         clearBtn.classList.add('hidden');
       }
       renderPlacesList();
-      if (map) syncMapMarkers();
     }
 
     function clearSearch() {
@@ -1201,7 +851,26 @@
       searchQuery = '';
       document.getElementById('clear-search-btn').classList.add('hidden');
       renderPlacesList();
-      if (map) syncMapMarkers();
+    }
+
+    function resetFilters() {
+      currentFilterTag = '全部標籤';
+      currentFilterCity = '東莞市 (全部)';
+      currentSortOrder = 'default';
+      searchQuery = '';
+      document.getElementById('current-city-label').textContent = '東莞市 (全部)';
+      document.getElementById('current-sort-label').textContent = '默認排序';
+      document.getElementById('search-input').value = '';
+      document.getElementById('clear-search-btn').classList.add('hidden');
+      document.querySelectorAll('.tag-pill').forEach(btn => {
+        if (btn.getAttribute('data-tag') === '全部標籤') {
+          btn.classList.add('filter-pill-active');
+        } else {
+          btn.classList.remove('filter-pill-active');
+        }
+      });
+      renderPlacesList();
+      showToast('已重置全部篩選條件');
     }
 
     function openModal(id) {
@@ -1239,7 +908,7 @@
         if (idx < newShopRatingValue) {
           icon.className = 'fa-solid fa-star';
         } else {
-          icon.className = 'fa-regular fa-star';
+          icon.className = 'fa-regular fa-star text-slate-300';
         }
       });
       document.getElementById('new-rating-label').textContent = `${newShopRatingValue.toFixed(1)} 分`;
@@ -1259,22 +928,14 @@
         return;
       }
 
-      // Generate realistic coordinates around Dongguan center
-      const latOffset = (Math.random() - 0.5) * 0.06;
-      const lngOffset = (Math.random() - 0.5) * 0.06;
-      const newLat = 23.033 + latOffset;
-      const newLng = 113.780 + lngOffset;
-
       const newId = 'r_' + Date.now();
       const newPlace = {
         id: newId,
         name: name,
         address: address,
         tag: tag,
-        type: '正餐餐厅',
+        type: '正餐餐廳',
         city: area,
-        lat: newLat,
-        lng: newLng,
         rating: newShopRatingValue,
         avgPrice: price ? parseInt(price) : null,
         reviews: []
@@ -1290,11 +951,10 @@
       }
 
       places.unshift(newPlace);
-
       closeModal('modal-add-place');
       renderPlacesList();
-      if (map) syncMapMarkers();
-      showToast(`已成功添加「${name}」至收藏夾！`);
+
+      showToast(`已新增「${name}」！點擊即可百度地圖導航。`);
     }
 
     function openReviewsDrawer(placeId) {
@@ -1305,9 +965,12 @@
       document.getElementById('drawer-title').textContent = place.name;
       document.getElementById('drawer-address').textContent = place.address;
       document.getElementById('drawer-tag').textContent = place.tag;
-      document.getElementById('drawer-rating-num').textContent = place.rating.toFixed(1);
+      document.getElementById('drawer-rating-num').textContent = Number(place.rating).toFixed(1);
       document.getElementById('drawer-reviews-count').textContent = place.reviews ? place.reviews.length : 0;
       
+      const baiduBtn = document.getElementById('drawer-baidu-btn');
+      baiduBtn.onclick = () => searchPlaceOnBaidu(place.name, place.city);
+
       renderDrawerStars(place.rating);
       renderDrawerReviewsList(place);
 
@@ -1339,7 +1002,7 @@
         listContainer.innerHTML = `
           <div class="py-8 text-center text-slate-400 text-xs">
             <i class="fa-regular fa-comment-dots text-2xl mb-2 text-slate-300"></i>
-            <p>暫無評價，快來成為第一個打分點評的美食家！</p>
+            <p>暫無評價，快來留下第一個打分點評！</p>
           </div>
         `;
         return;
@@ -1391,10 +1054,6 @@
       document.getElementById('user-rating-score-display').textContent = `${score}.0`;
     }
 
-    function focusReviewInput() {
-      document.getElementById('user-review-text').focus();
-    }
-
     function submitUserReview() {
       const text = document.getElementById('user-review-text').value.trim();
       if (!text) {
@@ -1418,16 +1077,14 @@
       const sum = place.reviews.reduce((acc, r) => acc + r.score, 0);
       place.rating = parseFloat((sum / place.reviews.length).toFixed(1));
 
-      document.getElementById('drawer-rating-num').textContent = place.rating.toFixed(1);
+      document.getElementById('drawer-rating-num').textContent = Number(place.rating).toFixed(1);
       document.getElementById('drawer-reviews-count').textContent = place.reviews.length;
       renderDrawerStars(place.rating);
       renderDrawerReviewsList(place);
       document.getElementById('user-review-text').value = '';
 
       renderPlacesList();
-      if (map) syncMapMarkers();
-
-      showToast('感謝您的點評，評分已更新！');
+      showToast('感謝您的點評！');
     }
 
     function showPlaceActionSheet(placeId) {
@@ -1435,29 +1092,59 @@
       if (!place) return;
 
       confirmModal(
-        `操作：${place.name}`,
-        `您可以查看詳情、在地圖上導航或刪除該收藏點。`,
+        place.name,
+        place.address,
         [
-          { label: '在地圖定位', primary: true, action: () => focusPlaceOnMap(place.id) },
-          { label: '修改/點評', primary: false, action: () => openReviewsDrawer(place.id) },
-          { label: '移除收藏', danger: true, action: () => deletePlace(place.id) }
+          { 
+            label: '百度地圖直連開啟', 
+            primary: true, 
+            action: () => searchPlaceOnBaidu(place.name, place.city) 
+          },
+          { 
+            label: '高德地圖搜尋開啟', 
+            primary: false, 
+            action: () => openExternalUrl(`https://uri.amap.com/search?keyword=${encodeURIComponent(place.name + ' ' + (place.city || '东莞'))}`, place.name) 
+          },
+          { 
+            label: '複製詳細地址', 
+            primary: false, 
+            action: () => copyTextToClipboard(place.address) 
+          },
+          { 
+            label: '查看與撰寫評價', 
+            primary: false, 
+            action: () => openReviewsDrawer(place.id) 
+          },
+          { 
+            label: '移除此店鋪', 
+            danger: true, 
+            action: () => deletePlace(place.id) 
+          }
         ]
       );
+    }
+
+    function copyTextToClipboard(text) {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.opacity = "0";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        showToast('已複製地址至剪貼簿！');
+      } catch (err) {
+        showToast('複製失敗，請手動複製');
+      }
+      document.body.removeChild(textArea);
     }
 
     function deletePlace(placeId) {
       places = places.filter(p => p.id !== placeId);
       renderPlacesList();
-      if (map) syncMapMarkers();
-      showToast('已從默認收藏夾中移除');
-    }
-
-    function navigateRouteTo(placeName) {
-      showToast(`正在調起導航規劃至：${placeName}`);
-    }
-
-    function showSortFilterMenu() {
-      showToast('按收藏時間降序排列中');
+      showToast('已從店鋪清單移除');
     }
 
     let toastTimer = null;
@@ -1486,7 +1173,7 @@
         if (btn.danger) {
           btnClass += 'bg-red-50 text-red-600 hover:bg-red-100';
         } else if (btn.primary) {
-          btnClass += 'bg-baidu-blue text-white hover:bg-baidu-darkblue';
+          btnClass += 'bg-baidu-blue text-white hover:bg-baidu-darkblue shadow-xs';
         } else {
           btnClass += 'bg-slate-100 text-slate-700 hover:bg-slate-200';
         }
@@ -1496,12 +1183,12 @@
       modalEl.innerHTML = `
         <div class="bg-white rounded-2xl w-full max-w-xs p-5 shadow-2xl space-y-4">
           <div>
-            <h4 class="font-bold text-slate-900 text-sm">${escapeHtml(title)}</h4>
+            <h4 class="font-bold text-slate-900 text-sm truncate">${escapeHtml(title)}</h4>
             <p class="text-xs text-slate-500 mt-1">${escapeHtml(msg)}</p>
           </div>
           <div class="space-y-2 pt-2">
             ${buttonsHtml}
-            <button id="custom-modal-cancel" class="w-full py-2 rounded-xl text-slate-400 text-xs hover:text-slate-600">關閉</button>
+            <button id="custom-modal-cancel" class="w-full py-2 rounded-xl text-slate-400 text-xs hover:text-slate-600">取消</button>
           </div>
         </div>
       `;
@@ -1529,6 +1216,26 @@
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
     }
+
+    function escapeJsString(string) {
+      if (!string) return '';
+      return String(string).replace(/'/g, "\\'").replace(/"/g, '\\"');
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      renderPlacesList();
+
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('#city-dropdown') && !e.target.closest('[onclick*="city-dropdown"]')) {
+          const cd = document.getElementById('city-dropdown');
+          if (cd) cd.classList.add('hidden');
+        }
+        if (!e.target.closest('#sort-dropdown') && !e.target.closest('[onclick*="sort-dropdown"]')) {
+          const sd = document.getElementById('sort-dropdown');
+          if (sd) sd.classList.add('hidden');
+        }
+      });
+    });
   </script>
 </body>
 </html>
